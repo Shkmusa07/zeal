@@ -56,8 +56,70 @@ function switchTab(tabId) {
   }
 }
 
+// ── Web Push & VAPID Config ──────────────────────────────────────────────────
+const VAPID_PUBLIC_KEY = 'BL_oQjUZ1n0co9kjA8ubhQIQ0sDX04zvuBRULWawKZSb43pspFih7FLzfUlsjxF4jZp6co_DC6kK7VTA2_kGIRc';
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// ── Web Push Subscription ────────────────────────────────────────────────────
+async function subscribeWebPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.log('[WebPush] PushManager not supported in this browser environment');
+    return null;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+
+    if (!sub) {
+      const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: convertedKey
+      });
+    }
+
+    if (sub) {
+      const subJson = JSON.stringify(sub);
+      console.log('======================================================');
+      console.log('🔔 [WEB PUSH SUBSCRIPTION]:');
+      console.log(subJson);
+      console.log('======================================================');
+
+      // POST to /api/log-subscription for serverless function logs
+      fetch('/api/log-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subscription: sub,
+          focusSettings: window.focusModule?.getSettings(),
+          reviews: window.reviewsModule?.getReviewsData(),
+          userAgent: navigator.userAgent
+        })
+      }).then((res) => res.json())
+        .then((data) => console.log('[WebPush] Server log response:', data.message))
+        .catch((err) => console.log('[WebPush] Server logging note:', err.message));
+
+      return sub;
+    }
+  } catch (err) {
+    console.warn('[WebPush] Subscription error:', err);
+  }
+  return null;
+}
+
 // ── Notification Permissions ───────────────────────────────────────────────
-async function requestNotificationPermission() {
+async function requestNotificationPermission(showModalOnSuccess = true) {
   if (!('Notification' in window)) {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
     if (isIOS) {
@@ -72,6 +134,14 @@ async function requestNotificationPermission() {
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       window.focusModule?.showToast('Notifications enabled! 🔔');
+      localStorage.setItem('studyapp_notifications_enabled', 'true');
+
+      // Subscribe to real Web Push
+      const sub = await subscribeWebPush();
+
+      if (showModalOnSuccess) {
+        openPushSetupModal();
+      }
       return true;
     } else if (permission === 'denied') {
       alert('Notifications were blocked. You can enable them anytime in your device or browser settings.');
@@ -81,6 +151,67 @@ async function requestNotificationPermission() {
     console.warn('[Notifications] Error requesting permission:', err);
   }
   return false;
+}
+
+// ── Web Push & Global Config Modal ──────────────────────────────────────────
+async function openPushSetupModal() {
+  const modal = document.getElementById('push-setup-modal');
+  if (!modal) return;
+
+  const subArea     = document.getElementById('push-sub-preview');
+  const focusArea   = document.getElementById('push-focus-preview');
+  const reviewsArea = document.getElementById('push-reviews-preview');
+
+  if (focusArea) {
+    const focusSettings = window.focusModule?.getSettings() || {};
+    focusArea.value = JSON.stringify(focusSettings);
+  }
+
+  if (reviewsArea) {
+    const reviewsData = window.reviewsModule?.getReviewsData() || [];
+    reviewsArea.value = JSON.stringify(reviewsData);
+  }
+
+  if (subArea) {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          subArea.value = JSON.stringify(sub);
+        } else {
+          subArea.value = 'Tap "Request Permission & Subscribe" below to generate your device subscription JSON.';
+        }
+      } catch (err) {
+        subArea.value = 'Subscription status: ' + err.message;
+      }
+    } else {
+      subArea.value = 'Push notifications require iOS 16.4+ standalone mode (Add to Home Screen) or a desktop browser.';
+    }
+  }
+
+  modal.classList.remove('hidden');
+}
+
+function closePushSetupModal() {
+  const modal = document.getElementById('push-setup-modal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function copyToClipboard(text, successMsg) {
+  if (!text || text.startsWith('Tap ') || text.startsWith('Push not')) {
+    window.focusModule?.showToast('Please subscribe first to generate JSON 🔔');
+    return;
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => {
+      window.focusModule?.showToast(successMsg);
+    }).catch(() => {
+      prompt('Copy to clipboard (Cmd+C / Ctrl+C):', text);
+    });
+  } else {
+    prompt('Copy to clipboard (Cmd+C / Ctrl+C):', text);
+  }
 }
 
 // ── Foreground Check (iOS Fallback) ──────────────────────────────────────────
@@ -202,6 +333,53 @@ async function bootstrap() {
       document.getElementById('install-overlay').classList.add('hidden');
     }
   });
+
+  // Web Push setup modal triggers & copy buttons
+  const headerPushBtn = document.getElementById('header-push-btn');
+  if (headerPushBtn) {
+    headerPushBtn.addEventListener('click', () => openPushSetupModal());
+  }
+
+  const closePushBtn = document.getElementById('push-setup-close-btn');
+  if (closePushBtn) {
+    closePushBtn.addEventListener('click', () => closePushSetupModal());
+  }
+
+  const closePushTopBtn = document.getElementById('push-setup-close-top-btn');
+  if (closePushTopBtn) {
+    closePushTopBtn.addEventListener('click', () => closePushSetupModal());
+  }
+
+  const pushSubscribeActionBtn = document.getElementById('push-subscribe-action-btn');
+  if (pushSubscribeActionBtn) {
+    pushSubscribeActionBtn.addEventListener('click', async () => {
+      await requestNotificationPermission(true);
+    });
+  }
+
+  const copySubBtn = document.getElementById('copy-sub-btn');
+  if (copySubBtn) {
+    copySubBtn.addEventListener('click', () => {
+      const text = document.getElementById('push-sub-preview')?.value || '';
+      copyToClipboard(text, 'Copied push-subscription JSON! 📋');
+    });
+  }
+
+  const copyFocusBtn = document.getElementById('copy-focus-btn');
+  if (copyFocusBtn) {
+    copyFocusBtn.addEventListener('click', () => {
+      const text = document.getElementById('push-focus-preview')?.value || '';
+      copyToClipboard(text, 'Copied focus-settings JSON! 📋');
+    });
+  }
+
+  const copyReviewsBtn = document.getElementById('copy-reviews-btn');
+  if (copyReviewsBtn) {
+    copyReviewsBtn.addEventListener('click', () => {
+      const text = document.getElementById('push-reviews-preview')?.value || '';
+      copyToClipboard(text, 'Copied reviews JSON! 📋');
+    });
+  }
 
   registerSW();
   checkInstallPrompt();

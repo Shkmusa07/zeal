@@ -43,6 +43,8 @@ const focusModule = (() => {
 
   function saveSettings() {
     try {
+      // Store user's timezone offset in minutes (e.g. +330 for IST)
+      settings.timezoneOffset = -new Date().getTimezoneOffset();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     } catch (err) {
       console.warn('[Focus] Failed to save settings:', err);
@@ -116,6 +118,7 @@ const focusModule = (() => {
           settings.snoozedUntil = 0;
           saveSettings();
           renderUI();
+          checkHourlyFocusNudge();
           showToast('Focus reminders resumed ▶');
         } else {
           // Snooze 1 hour
@@ -132,17 +135,19 @@ const focusModule = (() => {
       turnOffBtn.addEventListener('click', () => {
         const todayStr = toDateStr(new Date());
         if (settings.turnedOffDate === todayStr) {
-          // Resume for today
+          // Resume for today: clear flag, reset lastNudgeHour, immediately re-render & check
           settings.turnedOffDate = null;
+          settings.lastNudgeHour = -1;
           saveSettings();
           renderUI();
+          checkHourlyFocusNudge();
           showToast('Focus reminders resumed for today ▶');
         } else {
           // Turn off for rest of today
           settings.turnedOffDate = todayStr;
           saveSettings();
           renderUI();
-          showToast('Focus reminders paused for the rest of today ⏸');
+          showToast('Focus reminders paused for today ⏸');
         }
       });
     }
@@ -187,7 +192,7 @@ const focusModule = (() => {
     const endHour = (settings.startHour + settings.durationHours) % 24;
     const windowText = `${formatHour(settings.startHour)} – ${formatHour(endHour)} (${settings.durationHours}h)`;
 
-    // Reset button labels
+    // Reset button labels & states
     if (snoozeBtn) {
       snoozeBtn.textContent = '💤 Snooze 1 Hour';
       snoozeBtn.disabled = !settings.enabled;
@@ -203,9 +208,9 @@ const focusModule = (() => {
     }
 
     if (settings.turnedOffDate === todayStr) {
-      statusBox.innerHTML = `<span class="status-warn">Paused for the rest of today ⏸ (${windowText})</span>`;
+      statusBox.innerHTML = `<span class="status-warn">Paused for today ⏸ (${windowText})</span>`;
       if (turnOffBtn) {
-        turnOffBtn.textContent = '▶ Resume for Today';
+        turnOffBtn.textContent = '▶ Resume Today';
         turnOffBtn.disabled = false;
       }
       if (snoozeBtn) snoozeBtn.disabled = true;

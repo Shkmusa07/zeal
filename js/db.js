@@ -8,6 +8,7 @@
  *   chapters  { id, subjectId, chapterName, complete, percentComplete,
  *               retention, revisionsDone, revisionsNeeded, remarks }
  *   tasks     { id, title, estimatedMinutes, status, startedAt, completedAt }
+ *   reviews   { id, subject, chapterName, dateStudied, milestones, notes }
  */
 
 const DB_NAME    = 'studyapp-db';

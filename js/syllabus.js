@@ -193,7 +193,14 @@ window.syllabusModule = (() => {
     if (subjects.length === 0) {
       container.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">≡</div>
+          <svg class="empty-state-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
           <p class="empty-state-title">No subjects yet</p>
           <p class="empty-state-desc">Add a subject above to start tracking your syllabus.</p>
         </div>

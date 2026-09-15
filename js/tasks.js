@@ -77,7 +77,10 @@ window.tasksModule = (() => {
     if (todoTasks.length === 0) {
       todoEl.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">✓</div>
+          <svg class="empty-state-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 11 12 14 22 4"></polyline>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+          </svg>
           <p class="empty-state-title">Nothing to do yet</p>
           <p class="empty-state-desc">Add a task above and tap Start to begin a focused session.</p>
         </div>
@@ -171,11 +174,19 @@ window.tasksModule = (() => {
     const display  = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 
     const timerEl = document.getElementById('lock-timer');
-    if (timerEl) timerEl.textContent = display;
+    if (timerEl) {
+      timerEl.textContent = display;
+      if (totalSec <= 10 && remainingMs > 0) {
+        timerEl.classList.add('urgency-pulse');
+      } else {
+        timerEl.classList.remove('urgency-pulse');
+      }
+    }
 
     if (remainingMs === 0) {
       clearInterval(timerTick);
       timerTick = null;
+      if (timerEl) timerEl.classList.remove('urgency-pulse');
       const msg = document.getElementById('lock-timer-done-msg');
       if (msg) msg.style.display = '';
     }
@@ -184,6 +195,8 @@ window.tasksModule = (() => {
   function hideLockScreen() {
     document.getElementById('lock-screen').classList.add('hidden');
     document.body.classList.remove('locked');
+    const timerEl = document.getElementById('lock-timer');
+    if (timerEl) timerEl.classList.remove('urgency-pulse');
     if (timerTick) { clearInterval(timerTick); timerTick = null; }
   }
 

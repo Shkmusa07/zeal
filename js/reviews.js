@@ -507,7 +507,8 @@ const reviewsModule = (() => {
   return {
     init,
     render,
-    getDueReminders
+    getDueReminders,
+    getReviewsData: () => reviewsList
   };
 })();
 
