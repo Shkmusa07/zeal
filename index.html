@@ -139,6 +139,54 @@
 
 
 <!-- ══════════════════════════════════════════════════════════════════════════
+     WEB PUSH SETUP MODAL (Feature E / Vercel Global Config)
+══════════════════════════════════════════════════════════════════════════════ -->
+<div id="push-setup-modal" class="hidden" role="dialog" aria-modal="true" aria-label="Web Push Setup">
+  <div class="modal-card push-modal-card">
+    <div class="modal-header-row">
+      <h3 class="modal-title">Web Push &amp; Global Config</h3>
+      <button id="push-setup-close-top-btn" class="icon-btn" aria-label="Close modal">✕</button>
+    </div>
+    <p class="modal-sub">
+      Notifications run outside the app via Vercel Cron. Copy these values to paste into your Vercel <strong>Global Config</strong> store:
+    </p>
+
+    <!-- Subscription Key -->
+    <div class="push-config-group">
+      <div class="push-config-header">
+        <label class="form-label" for="push-sub-preview">1. Key: <code>push-subscription</code></label>
+        <button id="copy-sub-btn" class="btn-xs" type="button">Copy JSON</button>
+      </div>
+      <textarea id="push-sub-preview" class="form-textarea code-preview" rows="3" readonly placeholder="Tap 'Request Permission &amp; Subscribe' below to generate your device subscription JSON..."></textarea>
+    </div>
+
+    <!-- Focus Settings Key -->
+    <div class="push-config-group">
+      <div class="push-config-header">
+        <label class="form-label" for="push-focus-preview">2. Key: <code>focus-settings</code></label>
+        <button id="copy-focus-btn" class="btn-xs" type="button">Copy JSON</button>
+      </div>
+      <textarea id="push-focus-preview" class="form-textarea code-preview" rows="2" readonly></textarea>
+    </div>
+
+    <!-- Reviews Key -->
+    <div class="push-config-group">
+      <div class="push-config-header">
+        <label class="form-label" for="push-reviews-preview">3. Key: <code>reviews</code></label>
+        <button id="copy-reviews-btn" class="btn-xs" type="button">Copy JSON</button>
+      </div>
+      <textarea id="push-reviews-preview" class="form-textarea code-preview" rows="2" readonly></textarea>
+    </div>
+
+    <div class="modal-actions" style="margin-top:14px;">
+      <button id="push-subscribe-action-btn" class="btn-primary" style="flex:1;">🔔 Request Permission &amp; Subscribe</button>
+      <button id="push-setup-close-btn" class="btn-secondary">Done</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════════════════════════════
      APP SHELL
 ══════════════════════════════════════════════════════════════════════════════ -->
 <div id="app">
@@ -146,6 +194,9 @@
   <!-- ── Header ─────────────────────────────────────────────────────────── -->
   <header id="app-header" role="banner">
     <span id="page-title">Tasks</span>
+    <button id="header-push-btn" class="header-icon-btn" title="Web Push &amp; Notifications" aria-label="Web Push Settings">
+      🔔
+    </button>
   </header>
 
   <!-- ── Content area ───────────────────────────────────────────────────── -->
@@ -223,8 +274,11 @@
 
       <!-- Empty state -->
       <div id="reviews-empty-state" class="empty-state" style="display:none;">
-        <div class="empty-icon">📖</div>
-        <p class="empty-text">No studied chapters logged yet.</p>
+        <svg class="empty-state-svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+        </svg>
+        <p class="empty-text">No studied chapters logged yet</p>
         <p class="empty-sub">Fill out the form above to schedule your spaced-repetition milestones.</p>
       </div>
 

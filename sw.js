@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE_NAME = 'studyapp-v2';
+const CACHE_NAME = 'studyapp-v3';
 
 // All files that form the app shell
 const SHELL_ASSETS = [
@@ -80,34 +80,47 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// ── Push ─────────────────────────────────────────────────────────────────────
+// ── Push Event (Web Push notifications from Vercel) ─────────────────────────
 self.addEventListener('push', (event) => {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
   const title = data.title || 'Study & Focus';
   const options = {
     body: data.body || 'Review or focus reminder due!',
-    icon: 'icons/icon-192.png',
-    badge: 'icons/icon-192.png',
+    icon: data.icon || './icons/icon-192.png',
+    badge: data.badge || './icons/icon-192.png',
     tag: data.tag || 'studyapp-notification',
     renotify: true,
-    data: data
+    data: data.data || data
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// ── Notification click ───────────────────────────────────────────────────────
+// ── Notification Click: Focus existing app window or open ───────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If a window is already open, focus it
       for (const client of clientList) {
         if ('focus' in client) {
           return client.focus();
         }
       }
+      // Otherwise open a new window
       if (self.clients.openWindow) {
         return self.clients.openWindow('./');
       }
     })
   );
 });
+

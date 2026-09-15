@@ -1,0 +1,13 @@
+{
+  "name": "study-and-focus-app",
+  "version": "1.0.0",
+  "description": "Minimalist, zero-backend, offline-first personal study and focus PWA for iOS with real Web Push",
+  "type": "module",
+  "scripts": {
+    "start": "python -m http.server 8080"
+  },
+  "dependencies": {
+    "@vercel/global-config": "^1.3.0",
+    "web-push": "^3.6.7"
+  }
+}
